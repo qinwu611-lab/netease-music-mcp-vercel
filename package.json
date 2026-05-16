@@ -1,0 +1,30 @@
+{
+  "name": "netease-music-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for searching NetEase Cloud Music and fetching lyrics.",
+  "type": "module",
+  "bin": {
+    "netease-music-mcp": "./server/index.js"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "node server/index.js",
+    "start:next": "next start",
+    "start:http": "node server/http.js",
+    "inspect": "npx @modelcontextprotocol/inspector node server/index.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "mcp-handler": "^1.1.0",
+    "next": "^16.2.6",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "zod": "^4.4.3"
+  }
+}
