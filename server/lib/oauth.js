@@ -17,6 +17,7 @@ export function oauthConfig() {
   const descopeProjectId = process.env.DESCOPE_PROJECT_ID;
   const issuer = trimTrailingSlash(
     process.env.OAUTH_ISSUER
+      ?? process.env.DESCOPE_ISSUER
       ?? process.env.DESCOPE_ISSUER_URL
       ?? (descopeProjectId ? `https://api.descope.com/${descopeProjectId}` : undefined),
   );
