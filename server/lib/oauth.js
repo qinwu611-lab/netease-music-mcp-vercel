@@ -27,8 +27,9 @@ export function oauthConfig() {
   }
 
   const jwksUrl = process.env.OAUTH_JWKS_URL ?? `${issuer}/.well-known/jwks.json`;
-  const audience = process.env.OAUTH_AUDIENCE ?? descopeProjectId;
+  const audience = process.env.OAUTH_AUDIENCE;
   const requiredScopes = splitScopes(process.env.OAUTH_REQUIRED_SCOPES ?? process.env.OAUTH_REQUIRED_SCOPE);
+  const resourceUrl = trimTrailingSlash(process.env.OAUTH_RESOURCE_URL) ?? "https://netease-music-mcp-vercel.vercel.app/api/mcp";
 
   return {
     enabled: true,
@@ -36,6 +37,7 @@ export function oauthConfig() {
     jwksUrl,
     audience,
     requiredScopes,
+    resourceUrl,
   };
 }
 

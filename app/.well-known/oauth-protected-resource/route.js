@@ -22,6 +22,7 @@ export function GET(request) {
 
   return protectedResourceHandler({
     authServerUrls: [config.issuer],
+    resourceUrl: config.resourceUrl,
   })(request);
 }
 

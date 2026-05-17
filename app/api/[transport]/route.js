@@ -31,6 +31,7 @@ const authHandler = authConfig.enabled
       required: true,
       requiredScopes: authConfig.requiredScopes,
       resourceMetadataPath: "/.well-known/oauth-protected-resource",
+      resourceUrl: authConfig.resourceUrl,
     })
   : handler;
 
