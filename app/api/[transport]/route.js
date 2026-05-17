@@ -1,6 +1,7 @@
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 
 import { SERVER_NAME, SERVER_VERSION } from "../../../server/lib/config.js";
+import { oauthConfig, verifyOauthBearerToken } from "../../../server/lib/oauth.js";
 import { registerNeteaseMusicTools } from "../../../server/tools/registerMcpTools.js";
 
 export const runtime = "nodejs";
@@ -23,21 +24,14 @@ const handler = createMcpHandler(
   },
 );
 
-async function verifyToken(_request, bearerToken) {
-  const expectedToken = process.env.MCP_AUTH_TOKEN;
-  if (!expectedToken) return undefined;
-  if (bearerToken !== expectedToken) return undefined;
+const authConfig = oauthConfig();
 
-  return {
-    token: bearerToken,
-    scopes: ["netease:read"],
-    clientId: "netease-music-mcp-client",
-  };
-}
-
-const authHandler = withMcpAuth(handler, verifyToken, {
-  required: Boolean(process.env.MCP_AUTH_TOKEN),
-  requiredScopes: ["netease:read"],
-});
+const authHandler = authConfig.enabled
+  ? withMcpAuth(handler, verifyOauthBearerToken, {
+      required: true,
+      requiredScopes: authConfig.requiredScopes,
+      resourceMetadataPath: "/.well-known/oauth-protected-resource",
+    })
+  : handler;
 
 export { authHandler as DELETE, authHandler as GET, authHandler as POST };

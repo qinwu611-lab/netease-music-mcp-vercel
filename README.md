@@ -101,7 +101,12 @@ npm run build
 | `USER_AGENT` | Browser-like default | User agent sent to NetEase. |
 | `HOST` | `127.0.0.1` | HTTP host for `npm run start:http`. |
 | `PORT` | `8787` | HTTP port for `npm run start:http`. |
-| `MCP_AUTH_TOKEN` | unset | Optional bearer token for remote HTTP mode. |
+| `OAUTH_ISSUER` | unset | OAuth issuer URL. Setting this enables OAuth protection on the Vercel MCP route. |
+| `OAUTH_JWKS_URL` | `${OAUTH_ISSUER}/.well-known/jwks.json` | JWKS endpoint used to verify OAuth access tokens. |
+| `OAUTH_AUDIENCE` | `DESCOPE_PROJECT_ID` if set | Optional expected JWT audience. |
+| `OAUTH_REQUIRED_SCOPES` | unset | Optional space-separated scopes required for MCP access. |
+| `DESCOPE_PROJECT_ID` | unset | Convenience setting for Descope. Used to derive issuer/audience when `OAUTH_ISSUER` is not set. |
+| `DESCOPE_ISSUER_URL` | unset | Optional Descope issuer override. |
 
 ## Run Remotely With HTTP
 
@@ -191,7 +196,7 @@ Recommended separate-repo flow:
 3. Run `npm install` and `npm run build`.
 4. Push the new repository to GitHub.
 5. Import the repository in Vercel.
-6. Add `MCP_AUTH_TOKEN` in Vercel Project Settings if you want bearer-token protection.
+6. For no-auth testing, leave OAuth env vars unset. For shared/private use, install Descope MCP Auth or another OAuth provider and set the OAuth env vars below.
 7. Deploy and connect MCP clients to `https://your-vercel-app.vercel.app/api/mcp`.
 
 Cursor-style remote config:
@@ -208,6 +213,40 @@ Cursor-style remote config:
   }
 }
 ```
+
+## OAuth For Claude And ChatGPT
+
+Claude and ChatGPT custom connectors work best with real OAuth, not a pasted static bearer token. This server supports OAuth as a resource server:
+
+- The MCP endpoint is `/api/mcp`.
+- Protected resource metadata is served at `/.well-known/oauth-protected-resource`.
+- JWT access tokens are verified against the configured issuer's JWKS.
+
+Recommended provider path on Vercel:
+
+1. Install the Descope MCP Auth integration from the Vercel Marketplace.
+2. Connect it to this Vercel project.
+3. In Descope, enable MCP client onboarding through DCR and/or CIMD.
+4. Pull or inspect the environment variables Descope adds.
+5. Make sure production has either:
+   - `DESCOPE_PROJECT_ID`, or
+   - `OAUTH_ISSUER` plus optional `OAUTH_JWKS_URL` and `OAUTH_AUDIENCE`.
+6. Redeploy production.
+7. In Claude or ChatGPT, add the MCP URL and choose OAuth authentication.
+
+For Descope, the default issuer is derived as:
+
+```text
+https://api.descope.com/<DESCOPE_PROJECT_ID>
+```
+
+If your provider issues scoped tokens, set:
+
+```text
+OAUTH_REQUIRED_SCOPES=netease:read
+```
+
+Leave `OAUTH_REQUIRED_SCOPES` unset while first testing the OAuth handshake, then tighten scopes once sign-in works.
 
 ## Tools
 
