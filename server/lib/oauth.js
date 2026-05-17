@@ -13,6 +13,13 @@ function splitScopes(value) {
   return String(value).split(/\s+/).filter(Boolean);
 }
 
+function descopeJwksUrl(issuer, projectId) {
+  const issuerMatch = issuer?.match(/^https:\/\/api\.descope\.com\/v1\/apps\/([^/]+)$/);
+  const resolvedProjectId = projectId ?? issuerMatch?.[1];
+  if (!resolvedProjectId) return undefined;
+  return `https://api.descope.com/${resolvedProjectId}/.well-known/jwks.json`;
+}
+
 export function oauthConfig() {
   const descopeProjectId = process.env.DESCOPE_PROJECT_ID;
   const issuer = trimTrailingSlash(
@@ -26,7 +33,10 @@ export function oauthConfig() {
     return { enabled: false };
   }
 
-  const jwksUrl = process.env.OAUTH_JWKS_URL ?? `${issuer}/.well-known/jwks.json`;
+  const jwksUrl = process.env.OAUTH_JWKS_URL
+    ?? process.env.DESCOPE_JWKS_URL
+    ?? descopeJwksUrl(issuer, descopeProjectId)
+    ?? `${issuer}/.well-known/jwks.json`;
   const audience = process.env.OAUTH_AUDIENCE;
   const requiredScopes = splitScopes(process.env.OAUTH_REQUIRED_SCOPES ?? process.env.OAUTH_REQUIRED_SCOPE);
   const resourceUrl = trimTrailingSlash(process.env.OAUTH_RESOURCE_URL) ?? "https://netease-music-mcp-vercel.vercel.app/api/mcp";

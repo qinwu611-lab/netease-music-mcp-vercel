@@ -103,6 +103,7 @@ npm run build
 | `PORT` | `8787` | HTTP port for `npm run start:http`. |
 | `OAUTH_ISSUER` | unset | OAuth issuer URL. Setting this enables OAuth protection on the Vercel MCP route. |
 | `OAUTH_JWKS_URL` | `${OAUTH_ISSUER}/.well-known/jwks.json` | JWKS endpoint used to verify OAuth access tokens. |
+| `DESCOPE_JWKS_URL` | derived from Descope issuer/project ID | Optional Descope JWKS override. |
 | `OAUTH_AUDIENCE` | unset | Optional expected JWT audience. Leave unset for Descope MCP Auth unless you explicitly configured an audience. |
 | `OAUTH_RESOURCE_URL` | deployed `/api/mcp` URL | Protected resource identifier advertised to MCP clients. |
 | `OAUTH_REQUIRED_SCOPES` | unset | Optional space-separated scopes required for MCP access. |
