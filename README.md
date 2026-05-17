@@ -16,6 +16,12 @@ The implementation is based on the NetEase Music developer docs you linked, espe
 
 For this assignment, the MCP focuses on the operations you said you wanted to make fast: searching songs, searching albums, searching artists, listing album songs, listing artist albums, and fetching lyrics. The NetEase web API adapter is isolated in `server/lib/neteaseClient.js` and `server/lib/neteaseCrypto.js`, so you can later replace it with official app-key signing if your developer account requires it.
 
+## Design Choice: No NetEase Login
+
+This server intentionally avoids logging in to NetEase Music. It only calls public web endpoints so setup stays lightweight: no NetEase cookies, no personal account session, and no credential storage. That makes lyric/search fetching easier to run locally, deploy remotely, and share with MCP clients.
+
+The tradeoff is that account-only behavior is out of scope. Region-restricted, VIP-only, or personalized data may be incomplete or unavailable.
+
 ## Prerequisites
 
 - Node.js 20 or newer
@@ -102,8 +108,8 @@ npm run build
 | `HOST` | `127.0.0.1` | HTTP host for `npm run start:http`. |
 | `PORT` | `8787` | HTTP port for `npm run start:http`. |
 | `OAUTH_ISSUER` | unset | OAuth issuer URL. Setting this enables OAuth protection on the Vercel MCP route. |
-| `OAUTH_JWKS_URL` | `${OAUTH_ISSUER}/.well-known/jwks.json` | JWKS endpoint used to verify OAuth access tokens. |
-| `DESCOPE_JWKS_URL` | derived from Descope issuer/project ID | Optional Descope JWKS override. |
+| `OAUTH_JWKS_URL` | derived from issuer | JWKS endpoint used to verify OAuth access tokens. |
+| `DESCOPE_JWKS_URL` | derived from Descope issuer/project ID | Optional Descope JWKS override. Descope's JWKS path differs from the generic issuer default. |
 | `OAUTH_AUDIENCE` | unset | Optional expected JWT audience. Leave unset for Descope MCP Auth unless you explicitly configured an audience. |
 | `OAUTH_RESOURCE_URL` | deployed `/api/mcp` URL | Protected resource identifier advertised to MCP clients. |
 | `OAUTH_REQUIRED_SCOPES` | unset | Optional space-separated scopes required for MCP access. |
@@ -236,10 +242,16 @@ Recommended provider path on Vercel:
 6. Redeploy production.
 7. In Claude or ChatGPT, add the MCP URL and choose OAuth authentication.
 
-For Descope, the default issuer is derived as:
+For Descope, the issuer usually looks like:
 
 ```text
-https://api.descope.com/<DESCOPE_PROJECT_ID>
+https://api.descope.com/v1/apps/<DESCOPE_PROJECT_ID>
+```
+
+Descope's JWKS URL is derived as:
+
+```text
+https://api.descope.com/<DESCOPE_PROJECT_ID>/.well-known/jwks.json
 ```
 
 If your provider issues scoped tokens, set:
@@ -501,4 +513,188 @@ The client should call `search_and_get_lyrics`. If the first result is not the s
 ## Limitations
 
 - Some NetEase content can be region restricted, unavailable, or missing lyrics.
-- This uses NetEase's web API behavior for a local personal tool. If your developer account provides official credentials or a different signing scheme, replace `postWeapi` in `server/lib/neteaseClient.js`.
+- This uses NetEase's public web API behavior for a local personal tool and deliberately avoids NetEase login. If your developer account provides official credentials or a different signing scheme, replace `postWeapi` in `server/lib/neteaseClient.js`.
+
+## 简体中文说明
+
+这是一个 NetEase Music MCP 服务器，用来快速搜索网易云音乐并获取带时间戳的歌词。它支持本地 stdio、普通 HTTP，以及适合 Vercel 部署的 Streamable HTTP 路由。
+
+### 它做什么
+
+主要工具包括：
+
+- 搜索歌曲、专辑、歌单、艺人
+- 获取歌曲详情
+- 获取专辑歌曲列表
+- 获取艺人专辑和热门歌曲
+- 获取歌单歌曲
+- 获取歌词
+- 搜索歌曲并直接获取歌词
+- 按歌词片段查找歌曲
+- 解析网易云音乐 URL
+- 获取歌曲评论摘要和相似歌曲
+
+### 为什么不登录网易云音乐
+
+这个项目是有意避开网易云音乐登录的。它只调用公开 Web 接口，不保存网易云账号、Cookie 或个人会话。这样做的好处是：
+
+- 本地运行更简单
+- 部署到 Vercel 更轻量
+- 给 Claude、ChatGPT 等 MCP 客户端调用时更稳定
+- 不需要处理个人账号凭据
+
+代价是：会员、地区限制、个性化或账号相关内容可能拿不到，歌词也可能缺失。
+
+### 本地运行
+
+安装依赖：
+
+```bash
+npm install
+```
+
+启动 stdio MCP：
+
+```bash
+npm start
+```
+
+用 MCP Inspector 调试：
+
+```bash
+npm run inspect
+```
+
+运行测试：
+
+```bash
+npm test
+```
+
+启动 Vercel/Next.js 本地路由：
+
+```bash
+npm run dev
+```
+
+本地 MCP 地址：
+
+```text
+http://localhost:3000/api/mcp
+```
+
+检查 Vercel 构建：
+
+```bash
+npm run build
+```
+
+### 部署到 Vercel
+
+Vercel 入口是：
+
+```text
+app/api/[transport]/route.js
+```
+
+部署后 MCP 地址通常是：
+
+```text
+https://your-vercel-app.vercel.app/api/mcp
+```
+
+如果只是个人测试，可以不设置 OAuth 环境变量。这样 Claude/ChatGPT 会以无认证方式连接。
+
+如果想分享给朋友并保留权限控制，推荐使用 OAuth。这个项目已经支持 OAuth resource server：
+
+- MCP endpoint: `/api/mcp`
+- OAuth protected resource metadata: `/.well-known/oauth-protected-resource`
+- 使用 JWKS 验证访问令牌
+
+推荐做法是在 Vercel Marketplace 安装 Descope MCP Auth，并连接到这个 Vercel 项目。Descope 会添加类似下面的环境变量：
+
+```text
+DESCOPE_PROJECT_ID
+DESCOPE_ISSUER
+DESCOPE_DISCOVERY_URL
+NEXT_PUBLIC_DESCOPE_PROJECT_ID
+NEXT_PUBLIC_DESCOPE_BASE_URL
+```
+
+然后重新部署：
+
+```bash
+npx vercel --prod --yes
+```
+
+Claude 或 ChatGPT 中添加 MCP 地址：
+
+```text
+https://your-vercel-app.vercel.app/api/mcp
+```
+
+认证方式选择 OAuth。
+
+### 常用环境变量
+
+| 名称 | 作用 |
+| --- | --- |
+| `NETEASE_TIMEOUT_MS` | 网易云请求超时时间，默认 `10000` 毫秒。 |
+| `NETEASE_MIN_INTERVAL_MS` | 请求间隔节流，默认 `350` 毫秒。 |
+| `USER_AGENT` | 请求网易云时使用的 User-Agent。 |
+| `OAUTH_ISSUER` | OAuth issuer。设置后 Vercel MCP 路由会启用 OAuth。 |
+| `OAUTH_JWKS_URL` | 用来验证 OAuth token 的 JWKS 地址。 |
+| `DESCOPE_PROJECT_ID` | Descope 项目 ID。 |
+| `DESCOPE_ISSUER` | Descope issuer。 |
+| `DESCOPE_JWKS_URL` | 可选的 Descope JWKS 覆盖地址。 |
+| `OAUTH_AUDIENCE` | 可选 JWT audience；Descope MCP Auth 初始测试时通常不用设置。 |
+| `OAUTH_REQUIRED_SCOPES` | 可选 scope 要求，例如 `netease:read`。 |
+
+### Claude Desktop 本地配置示例
+
+如果使用本地 stdio，而不是远程 Vercel，可以在 Claude Desktop 配置中加入：
+
+```json
+{
+  "mcpServers": {
+    "netease-music": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/server/index.js"
+      ],
+      "env": {
+        "NETEASE_TIMEOUT_MS": "10000",
+        "NETEASE_MIN_INTERVAL_MS": "350"
+      }
+    }
+  }
+}
+```
+
+### 使用示例
+
+在 Claude 或 ChatGPT 中可以问：
+
+```text
+Use the NetEase Music MCP to search for "Stefanie Sun 遇见" and return the top song ID, title, artist, and album.
+```
+
+或者：
+
+```text
+Use the NetEase Music MCP to search for "Stefanie Sun 遇见" and fetch the lyrics for the best match.
+```
+
+### 可靠性说明
+
+- 输入参数会被校验。
+- 网易云请求有超时控制。
+- 请求之间有简单节流，避免代理连续调用时太激进。
+- 上游错误会转成 MCP tool error，不会直接让服务器崩掉。
+- stdio 模式下日志只写 stderr，避免污染 MCP JSON-RPC stdout。
+
+### 限制
+
+- 部分歌曲、歌词、评论可能因为地区、版权或会员限制无法获取。
+- 项目使用的是公开 Web 行为，不是网易云官方 OpenAPI 登录态。
+- 如果以后想改成官方 OpenAPI，可以替换 `server/lib/neteaseClient.js` 中的请求逻辑。
