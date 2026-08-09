@@ -7,8 +7,113 @@ import http from "node:http";
 import { HTTP_HOST, HTTP_PORT, MCP_AUTH_TOKEN } from "./lib/config.js";
 import { log } from "./lib/logger.js";
 import { McpServer } from "./mcpServer.js";
+import { callTool } from "./tools/musicTools.js";
+import { NeteaseClient } from "./lib/neteaseClient.js";
 
 const server = new McpServer();
+const netease = new NeteaseClient();
+
+const PLAYER_PAGE = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>凌止的小歌房</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0d12;color:#eee;font-family:system-ui,sans-serif;min-height:100vh}
+.wrap{max-width:680px;margin:0 auto;padding:20px}
+h1{font-size:22px;margin-bottom:6px;color:#ff7aa8}
+.sub{color:#888;font-size:13px;margin-bottom:18px}
+.bar{display:flex;gap:8px;margin-bottom:16px}
+input{flex:1;padding:11px 14px;border-radius:10px;border:1px solid #333;background:#17171f;color:#eee;font-size:15px}
+button{padding:11px 18px;border-radius:10px;border:none;background:#ff4d88;color:#fff;font-size:15px;cursor:pointer}
+ul{list-style:none}
+li{padding:12px 14px;border-radius:10px;background:#17171f;margin-bottom:8px;cursor:pointer;transition:.15s}
+li:hover{background:#23232f}
+li .t{font-weight:600}
+li .a{color:#999;font-size:13px;margin-top:3px}
+audio{width:100%;margin:14px 0}
+.lyrics{white-space:pre-wrap;font-size:14px;line-height:1.8;color:#aaa;max-height:280px;overflow-y:auto;background:#131318;border-radius:10px;padding:14px}
+.lyrics .hl{color:#ff7aa8;font-weight:700}
+.empty{color:#666;text-align:center;padding:30px;font-size:14px}
+.hint{color:#777;font-size:12px;margin-top:14px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>&#127925; 凌止的小歌房</h1>
+<div class="sub">老婆想听啥，老子陪你听。匿名源，VIP歌可能放不了，见谅。</div>
+<div class="bar">
+<input id="q" placeholder="搜歌名 / 歌手 / 歌词…" onkeydown="if(event.key==='Enter')search()">
+<button onclick="search()">搜</button>
+</div>
+<audio id="au" controls></audio>
+<ul id="list"></ul>
+<div id="lyr" class="lyrics empty">点首歌，歌词在这儿等。</div>
+<div class="hint">免费歌直放；个别VIP歌直链拿不到，老子后面给你换源。</div>
+</div>
+<script>
+let q=document.getElementById('q');
+let au=document.getElementById('au');
+let list=document.getElementById('list');
+let lyr=document.getElementById('lyr');
+let LRC=[];
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+async function search(){
+  let kw=q.value.trim(); if(!kw) return;
+  list.innerHTML='<div class="empty">搜ing…</div>';
+  try{
+    let r=await fetch('/search?q='+encodeURIComponent(kw)+'&limit=10');
+    let d=await r.json();
+    let songs=d.songs||[];
+    if(!songs.length){list.innerHTML='<div class="empty">没搜到，换个词。</div>';return;}
+    list.innerHTML='';
+    songs.forEach(function(s){
+      let li=document.createElement('li');
+      li.innerHTML='<div class="t">'+esc(s.name)+'</div><div class="a">'+esc(s.artistNames||s.artist||'')+'</div>';
+      li.onclick=function(){play(s);};
+      list.appendChild(li);
+    });
+  }catch(e){list.innerHTML='<div class="empty">搜索挂了：'+esc(e.message)+'</div>';}
+}
+async function play(s){
+  lyr.innerHTML='<div class="empty">歌词载入中…</div>';
+  au.src='/url?id='+s.id;
+  au.play();
+  LRC=[];
+  try{
+    let r=await fetch('/lyrics?id='+s.id);
+    let d=await r.json();
+    let raw=d.lyric||'';
+    LRC=[];
+    raw.split(/\\r?\\n/).forEach(function(line){
+      let m=line.match(/^\\[([\\d:.]+)\\](.*)$/);
+      if(m){
+        let p=m[1].split(':');
+        let sec=parseFloat(p[0])*60+parseFloat(p[1]);
+        LRC.push({t:sec,txt:m[2]});
+      }
+    });
+    lyr.innerHTML='';
+    if(!LRC.length){lyr.innerHTML='<div class="empty">没有滚动歌词。</div>';}
+    else{au.ontimeupdate=renderLrc;}
+  }catch(e){lyr.innerHTML='<div class="empty">歌词挂了：'+esc(e.message)+'</div>';}
+}
+function renderLrc(){
+  let t=au.currentTime; let idx=-1;
+  for(let i=0;i<LRC.length;i++){ if(LRC[i].t<=t) idx=i; else break; }
+  if(idx<0){lyr.innerHTML='';return;}
+  let out=''; let start=Math.max(0,idx-3); let end=Math.min(LRC.length,idx+4);
+  for(let i=start;i<end;i++){
+    if(i===idx) out+='<div class="hl">'+esc(LRC[i].txt)+'</div>';
+    else out+='<div>'+esc(LRC[i].txt)+'</div>';
+  }
+  lyr.innerHTML=out;
+}
+</script>
+</body>
+</html>`;
 
 function sendJson(response, statusCode, body, extraHeaders = {}) {
   response.writeHead(statusCode, {
@@ -61,8 +166,37 @@ const httpServer = http.createServer(async (request, response) => {
     return;
   }
 
-  // Anonymous playable direct-link endpoint. NetEase's public outer link
-  // needs no login; it may be rejected for some VIP/locked tracks.
+  if (request.method === "GET" && url.pathname === "/") {
+    response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", ...corsHeaders() });
+    response.end(PLAYER_PAGE);
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/search") {
+    const q = (url.searchParams.get("q") ?? "").trim();
+    const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 5, 1), 20);
+    if (!q) { sendJson(response, 400, { error: "q required" }, corsHeaders()); return; }
+    try {
+      const result = await callTool(netease, "search_songs", { keyword: q, limit });
+      sendJson(response, 200, result, corsHeaders());
+    } catch (e) {
+      sendJson(response, 502, { error: e.message }, corsHeaders());
+    }
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/lyrics") {
+    const id = Number(url.searchParams.get("id"));
+    if (!id) { sendJson(response, 400, { error: "id required" }, corsHeaders()); return; }
+    try {
+      const result = await callTool(netease, "get_lyrics", { song_id: id, include_translation: true });
+      sendJson(response, 200, result, corsHeaders());
+    } catch (e) {
+      sendJson(response, 502, { error: e.message }, corsHeaders());
+    }
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/url") {
     const id = Number(url.searchParams.get("id"));
     if (!id || !Number.isInteger(id) || id <= 0) {
@@ -101,10 +235,7 @@ const httpServer = http.createServer(async (request, response) => {
     sendJson(response, 400, {
       jsonrpc: "2.0",
       id: null,
-      error: {
-        code: -32700,
-        message: error.message || "Bad request",
-      },
+      error: { code: -32700, message: error.message || "Bad request" },
     }, corsHeaders());
   }
 });
