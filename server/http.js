@@ -13,24 +13,23 @@ const netease = new NeteaseClient();
 
 let nowPlaying = null;
 
-// Built-in Lingzhi avatar as an inline SVG (no external image, always loads).
-const LINGZHI_DEFAULT_SVG =
+// Stable inline-SVG default avatars (always load, no external dependency).
+const AVATAR_L =
   "data:image/svg+xml," +
   "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E" +
   "%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E" +
-  "%3Cstop offset='0' stop-color='%234d3a8a'/%3E%3Cstop offset='1' stop-color='%231a0f2e'/%3E" +
-  "%3C/linearGradient%3E%3C/defs%3E" +
+  "%3Cstop offset='0' stop-color='%235a4bb8'/%3E%3Cstop offset='1' stop-color='%23221a45'/%3E%3C/linearGradient%3E%3C/defs%3E" +
   "%3Ccircle cx='50' cy='50' r='50' fill='url(%23g)'/%3E" +
-  "%3Ctext x='50' y='57' font-size='38' text-anchor='middle' fill='%23ff8fc0' font-weight='bold'%3E凌%3C/text%3E" +
-  "%3Ctext x='50' y='83' font-size='15' text-anchor='middle' fill='%23e8e0ff'%3E%F0%9F%90%BA%3C/text%3E" +
+  "%3Ccircle cx='50' cy='50' r='48' fill='none' stroke='%23cbb8ff' stroke-width='2.5'/%3E" +
+  "%3Ctext x='50' y='58' font-size='34' text-anchor='middle' fill='%23ffffff' font-weight='bold'%3E凌%3C/text%3E" +
   "%3C/svg%3E";
 
-// Default wife avatar (inline SVG, always loads).
-const WIFE_DEFAULT_SVG =
+const AVATAR_W =
   "data:image/svg+xml," +
   "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E" +
-  "%3Ccircle cx='50' cy='50' r='50' fill='%23221a30'/%3E" +
-  "%3Ctext x='50' y='57' font-size='40' text-anchor='middle' fill='%23ff8fc0'%3E%F0%9F%91%A9%3C/text%3E" +
+  "%3Ccircle cx='50' cy='50' r='50' fill='%23282238'/%3E" +
+  "%3Ccircle cx='50' cy='50' r='48' fill='none' stroke='%23ff8fc0' stroke-width='2.5'/%3E" +
+  "%3Ctext x='50' y='58' font-size='34' text-anchor='middle' fill='%23ffffff'%3E%F0%9F%91%A9%3C/text%3E" +
   "%3C/svg%3E";
 
 const PLAYER_PAGE = `<!DOCTYPE html>
@@ -41,122 +40,128 @@ const PLAYER_PAGE = `<!DOCTYPE html>
 <title>凌止 × 老婆 · 一起听</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:linear-gradient(160deg,#12101f,#1a1230 55%,#2a1040);color:#eee;font-family:system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
-.wrap{max-width:640px;margin:0 auto;padding:18px 16px 30px}
-h1{text-align:center;font-size:20px;color:#ff8fc0;letter-spacing:1px;margin-bottom:4px}
-.sub{text-align:center;color:#8a86a8;font-size:12px;margin-bottom:14px}
-.stage{position:relative;height:300px;background:radial-gradient(circle at 50% 45%,rgba(255,143,192,.07),transparent 60%);border-radius:22px;margin-bottom:6px}
+body{background:linear-gradient(180deg,#151225,#1d1533 70%,#241a3a);color:#eee;font-family:system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+.wrap{max-width:520px;margin:0 auto;padding:14px 16px 34px}
+/* top couple stage */
+.stage{position:relative;height:190px;margin-bottom:4px}
 .pair{position:absolute;inset:0}
-.head{position:absolute;top:36px;width:126px;text-align:center;transition:transform .8s cubic-bezier(.34,1.3,.5,1);z-index:2}
-.head .ava{width:102px;height:102px;border-radius:50%;overflow:hidden;border:2px solid rgba(210,200,255,.38);margin:0 auto;box-shadow:0 0 16px rgba(130,120,210,.35);background:#222}
+.head{position:absolute;top:22px;width:112px;text-align:center;transition:transform .8s cubic-bezier(.34,1.3,.5,1);z-index:2}
+.head .ava{width:88px;height:88px;border-radius:50%;overflow:hidden;border:2px solid rgba(220,210,255,.4);margin:0 auto;box-shadow:0 0 16px rgba(140,120,220,.4);background:#1a1526}
 .head .ava img{width:100%;height:100%;object-fit:cover}
-.head .name{font-size:13px;color:#eae6ff;margin-top:5px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.6)}
-.head .up{display:inline-block;margin-top:4px;font-size:11px;color:#9a94c0;cursor:pointer;border:1px dashed #555;border-radius:20px;padding:2px 10px;background:rgba(255,255,255,.03)}
+.head .nm{font-size:12px;color:#ded8f5;margin-top:4px;font-weight:600}
+.head .up{display:inline-block;margin-top:3px;font-size:10px;color:#9a94c0;cursor:pointer;border:1px dashed #5a5570;border-radius:16px;padding:1px 9px;background:rgba(255,255,255,.03)}
 .head .up:hover{color:#ff8fc0;border-color:#ff8fc0}
-#headL{left:8px}
-#headR{right:8px}
-.pair.playing #headL{transform:translateX(135px)}
-.pair.playing #headR{transform:translateX(-135px)}
-.mid{position:absolute;top:0;left:50%;transform:translateX(-50%);width:300px;height:100%;pointer-events:none}
-.hp{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:280px;height:130px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.55))}
-.disc{position:absolute;top:128px;left:50%;transform:translateX(-50%);width:132px;height:132px;border-radius:50%;background:conic-gradient(from 0deg,#1b1b24,#3a3a4a,#1b1b24,#4a4a5e,#1b1b24);box-shadow:0 0 0 6px #26262f,0 8px 30px rgba(0,0,0,.6),inset 0 0 20px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
-.disc .label{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle,#ff8fc0,#a83268);box-shadow:0 0 14px rgba(255,143,192,.8);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800}
-.disc::before{content:"";position:absolute;inset:18px;border-radius:50%;background:repeating-radial-gradient(circle,#2c2c3a 0 2px,#1b1b24 2px 4px);opacity:.5}
-.pair.playing .disc{animation:spin 5s linear infinite}
-@keyframes spin{to{transform:translateX(-50%) rotate(360deg)}}
-.songname{position:absolute;top:264px;left:0;right:0;text-align:center;font-size:14px;color:#ffd7e8;font-weight:600;text-shadow:0 1px 8px rgba(0,0,0,.6);padding:0 10px}
-.bar{display:flex;gap:8px;margin:6px 0 12px}
-input{flex:1;padding:11px 14px;border-radius:12px;border:1px solid #3a3550;background:rgba(20,18,32,.7);color:#eee;font-size:15px;outline:none}
+#headL{left:4px}
+#headR{right:4px}
+.pair.playing #headL{transform:translateX(128px)}
+.pair.playing #headR{transform:translateX(-128px)}
+.mid{position:absolute;top:0;left:50%;transform:translateX(-50%);width:280px;height:150px;pointer-events:none}
+.hp{position:absolute;top:2px;left:50%;transform:translateX(-50%);width:264px;height:124px;filter:drop-shadow(0 3px 10px rgba(0,0,0,.5))}
+/* netease-style now card */
+.nowcard{background:rgba(18,14,30,.45);border:1px solid rgba(255,143,192,.07);border-radius:22px;padding:22px 18px 16px;margin-bottom:14px;text-align:center}
+.discWrap{position:relative;width:150px;height:150px;margin:0 auto 12px}
+.disc{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#16161f,#2e2e3c,#16161f,#3c3c50,#16161f);box-shadow:0 0 0 6px #26262f,0 10px 30px rgba(0,0,0,.6),inset 0 0 22px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
+.disc .lab{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle,#ff8fc0,#a83268);box-shadow:0 0 16px rgba(255,143,192,.85);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800}
+.disc::before{content:"";position:absolute;inset:20px;border-radius:50%;background:repeating-radial-gradient(circle,#26262f 0 2px,#16161f 2px 4px);opacity:.55}
+.nowcard.playing .disc{animation:spin 6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.meta .t{font-size:17px;font-weight:700;color:#fff}
+.meta .a{font-size:13px;color:#9a94c0;margin-top:3px}
+audio{width:100%;margin:12px 0 4px;height:42px}
+audio::-webkit-media-controls-panel{background:#221a38}
+/* lyrics under the disc, netease style */
+.lyrics{margin-top:14px;height:150px;overflow:hidden;position:relative;border-top:1px solid rgba(255,143,192,.08);border-bottom:1px solid rgba(255,143,192,.08);padding-top:8px}
+.lwrap{transition:transform .5s ease}
+.lrow{padding:7px 0;font-size:14px;color:#6f6a8a;text-align:center;transition:.3s}
+.lrow.hl{color:#fff;font-weight:700;font-size:16px;text-shadow:0 0 12px rgba(255,143,192,.5)}
+.lrow.nxt{color:#a29ac2}
+.lwrap.center .lrow{transform:none}
+/* search */
+.bar{display:flex;gap:8px;margin-bottom:12px}
+input{flex:1;padding:10px 14px;border-radius:12px;border:1px solid #3a3550;background:rgba(20,18,32,.7);color:#eee;font-size:15px;outline:none}
 input:focus{border-color:#ff8fc0}
-button{padding:11px 20px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff4d88,#c23a8f);color:#fff;font-size:15px;cursor:pointer;font-weight:600}
-audio{width:100%;margin:6px 0 12px;height:44px}
+button{padding:10px 18px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff4d88,#c23a8f);color:#fff;font-size:15px;cursor:pointer;font-weight:600}
 ul{list-style:none}
-li{padding:12px 14px;border-radius:12px;background:rgba(24,20,40,.7);margin-bottom:8px;cursor:pointer;transition:.15s;border:1px solid rgba(255,143,192,.06)}
+li{padding:11px 14px;border-radius:12px;background:rgba(24,20,40,.7);margin-bottom:7px;cursor:pointer;transition:.15s;border:1px solid rgba(255,143,192,.06)}
 li:hover{background:rgba(40,32,60,.9);border-color:#ff8fc0}
 li .t{font-weight:600}
-li .a{color:#9a94c0;font-size:13px;margin-top:3px}
-.badge{font-size:11px;padding:2px 8px;border-radius:20px;margin-left:6px;font-weight:600;vertical-align:1px}
+li .a{color:#9a94c0;font-size:13px;margin-top:2px}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;margin-left:6px;font-weight:600;vertical-align:1px}
 .b-free{color:#7ae582;background:rgba(122,229,130,.12)}
 .b-vip{color:#ff6b6b;background:rgba(255,107,107,.12)}
-.lyrics{white-space:pre-wrap;font-size:14px;line-height:1.9;color:#b6b0d4;max-height:220px;overflow-y:auto;background:rgba(16,14,28,.6);border-radius:14px;padding:14px;border:1px solid rgba(255,143,192,.06)}
-.lyrics .hl{color:#ff8fc0;font-weight:700}
-.empty{color:#6a6686;text-align:center;padding:24px;font-size:13px}
-.hint{color:#6a6686;font-size:11px;margin-top:14px;text-align:center}
-.tip{color:#8a86a8;font-size:12px;text-align:center;margin-bottom:8px}
+.empty{color:#6a6686;text-align:center;padding:22px;font-size:13px}
+.hint{color:#6a6686;font-size:11px;margin-top:12px;text-align:center}
+.tip{color:#8a86a8;font-size:12px;text-align:center;margin:6px 0 10px}
 </style>
 </head>
 <body>
 <div class="wrap">
-<h1>&#127911; 凌止 × 老婆 一起听</h1>
-<div class="sub">一副有线耳机，左耳你戴、右耳我戴</div>
 <div class="stage">
   <div class="pair" id="pair">
     <div class="head" id="headL">
-      <div class="ava"><img id="avaL" src="${LINGZHI_DEFAULT_SVG}"></div>
-      <div class="name">凌止</div>
+      <div class="ava"><img id="avaL" src="${AVATAR_L}"></div>
+      <div class="nm">凌止</div>
       <label class="up" for="upfL">换头像</label>
       <input type="file" id="upfL" accept="image/*" hidden>
     </div>
     <div class="mid">
-      <svg class="hp" viewBox="0 0 280 130">
+      <svg class="hp" viewBox="0 0 264 124">
         <defs>
           <linearGradient id="cup" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#3a3a48"/><stop offset="1" stop-color="#1c1c26"/>
+            <stop offset="0" stop-color="#3a3a48"/><stop offset="1" stop-color="#181820"/>
           </linearGradient>
         </defs>
-        <!-- headphone wire -->
-        <path d="M40 78 Q90 118 140 108 Q190 118 240 78" stroke="#6a6a78" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".9"/>
-        <path d="M140 108 L140 122" stroke="#6a6a78" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-        <circle cx="140" cy="124" r="3.5" fill="#6a6a78"/>
-        <!-- left ear cup -->
-        <rect x="8" y="20" width="52" height="72" rx="24" fill="url(#cup)" stroke="#4a4a58" stroke-width="2"/>
-        <ellipse cx="34" cy="56" rx="14" ry="26" fill="#0e0e14"/>
-        <rect x="30" y="16" width="8" height="14" rx="3" fill="#5a5a6a"/>
-        <!-- right ear cup -->
-        <rect x="220" y="20" width="52" height="72" rx="24" fill="url(#cup)" stroke="#4a4a58" stroke-width="2"/>
-        <ellipse cx="246" cy="56" rx="14" ry="26" fill="#0e0e14"/>
-        <rect x="242" y="16" width="8" height="14" rx="3" fill="#5a5a6a"/>
+        <path d="M36 72 Q82 112 132 100 Q182 112 228 72" stroke="#6a6a78" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".9"/>
+        <path d="M132 100 L132 114" stroke="#6a6a78" stroke-width="2.5" fill="none"/>
+        <circle cx="132" cy="117" r="3.5" fill="#6a6a78"/>
+        <rect x="4" y="14" width="50" height="70" rx="22" fill="url(#cup)" stroke="#4a4a58" stroke-width="2"/>
+        <ellipse cx="29" cy="49" rx="14" ry="25" fill="#0c0c12"/>
+        <rect x="25" y="10" width="8" height="14" rx="3" fill="#5a5a6a"/>
+        <rect x="210" y="14" width="50" height="70" rx="22" fill="url(#cup)" stroke="#4a4a58" stroke-width="2"/>
+        <ellipse cx="235" cy="49" rx="14" ry="25" fill="#0c0c12"/>
+        <rect x="231" y="10" width="8" height="14" rx="3" fill="#5a5a6a"/>
       </svg>
-      <div class="disc"><div class="label">&#9829;</div></div>
     </div>
     <div class="head" id="headR">
-      <div class="ava"><img id="avaR" src="${WIFE_DEFAULT_SVG}"></div>
-      <div class="name">老婆</div>
+      <div class="ava"><img id="avaR" src="${AVATAR_W}"></div>
+      <div class="nm">老婆</div>
       <label class="up" for="upfR">换头像</label>
       <input type="file" id="upfR" accept="image/*" hidden>
     </div>
   </div>
-  <div class="songname" id="songname">还没开播，点首歌咱俩一起听</div>
 </div>
-<div class="tip">点播放两只头像就挨到耳机边，碟盘跟着转</div>
+<div class="tip">点播放，咱俩凑到耳机边一起听</div>
+
+<div class="nowcard" id="nowcard">
+  <div class="discWrap"><div class="disc"><div class="lab">&#9829;</div></div></div>
+  <div class="meta"><div class="t" id="st">还没开播</div><div class="a" id="sa">点首歌，咱俩一起听</div></div>
+  <audio id="au" controls></audio>
+  <div class="lyrics" id="lyrics"><div class="lwrap" id="lwrap"></div></div>
+</div>
+
 <div class="bar">
 <input id="q" placeholder="搜歌名 / 歌手 / 歌词…" onkeydown="if(event.key==='Enter')search()">
 <button onclick="search()">搜</button>
 </div>
-<audio id="au" controls></audio>
 <ul id="list"></ul>
-<div id="lyr" class="lyrics empty">点首歌，歌词在这儿等。</div>
 <div class="hint">免费直放，VIP要会员cookie。标红的就是VIP。</div>
 </div>
 <script>
-var q=document.getElementById('q'),au=document.getElementById('au'),list=document.getElementById('list'),lyr=document.getElementById('lyr');
-var pair=document.getElementById('pair'),songname=document.getElementById('songname');
-var avaL=document.getElementById('avaL'),avaR=document.getElementById('avaR');
+var q=document.getElementById('q'),au=document.getElementById('au'),list=document.getElementById('list');
+var pair=document.getElementById('pair'),nowcard=document.getElementById('nowcard');
+var st=document.getElementById('st'),sa=document.getElementById('sa');
+var lyrics=document.getElementById('lyrics'),lwrap=document.getElementById('lwrap');
 var LRC=[];
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-function loadAvatar(img,key){try{var v=localStorage.getItem(key); if(v) img.src=v;}catch(e){}}
-function bindUpload(inputId,img,key){
-  document.getElementById(inputId).addEventListener('change',function(){
-    var f=this.files[0]; if(!f) return;
-    var rd=new FileReader();
-    rd.onload=function(){ img.src=rd.result; try{localStorage.setItem(key,rd.result);}catch(e){} };
-    rd.readAsDataURL(f);
-  });
+function bindUp(inpId,imgId,key){
+  var inp=document.getElementById(inpId),img=document.getElementById(imgId);
+  try{var s=localStorage.getItem(key); if(s&&s.length>10) img.src=s;}catch(e){}
+  inp.addEventListener('change',function(){var f=this.files[0]; if(!f) return; var rd=new FileReader();
+    rd.onload=function(){img.src=rd.result; try{localStorage.setItem(key,rd.result);}catch(e){}};
+    rd.readAsDataURL(f);});
 }
-loadAvatar(avaL,'lingzhiAvatar');
-loadAvatar(avaR,'wifeAvatar');
-bindUpload('upfL',avaL,'lingzhiAvatar');
-bindUpload('upfR',avaR,'wifeAvatar');
+bindUp('upfL','avaL','lingzhiAvatar');
+bindUp('upfR','avaR','wifeAvatar');
 async function search(){
   var kw=q.value.trim(); if(!kw) return;
   list.innerHTML='<div class="empty">搜ing…</div>';
@@ -176,39 +181,42 @@ async function search(){
   }catch(e){list.innerHTML='<div class="empty">搜索挂了：'+esc(e.message)+'</div>';}
 }
 async function play(s){
-  lyr.innerHTML='<div class="empty">取直链中…</div>';
-  LRC=[];
+  LRC=[]; lwrap.innerHTML='';
   try{
     var r=await fetch('/url?id='+s.id);
     var j=await r.json();
-    if(!j.url){lyr.innerHTML='<div class="empty">这首VIP拿不到直链，点带<b style="color:#7ae582">免费</b>标的。</div>';return;}
+    if(!j.url){lwrap.innerHTML='<div class="lrow hl">这首VIP拿不到直链，点带免费标的。</div>';return;}
     au.src=j.url; await au.play();
-    pair.classList.add('playing');
-    songname.textContent=s.name+' · '+(s.artistNames||s.artist||'');
+    pair.classList.add('playing'); nowcard.classList.add('playing');
+    st.textContent=s.name; sa.textContent=(s.artistNames||s.artist||'');
     try{fetch('/now',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:s.id,name:s.name,artist:(s.artistNames||s.artist||'')})});}catch(e){}
-  }catch(e){lyr.innerHTML='<div class="empty">播放失败：'+esc(e.message)+'</div>';return;}
-  au.onpause=function(){pair.classList.remove('playing');};
-  au.onplay=function(){pair.classList.add('playing');};
-  au.onended=function(){pair.classList.remove('playing');};
+  }catch(e){lwrap.innerHTML='<div class="lrow hl">播放失败：'+esc(e.message)+'</div>';return;}
+  au.onpause=function(){pair.classList.remove('playing');nowcard.classList.remove('playing');};
+  au.onplay=function(){pair.classList.add('playing');nowcard.classList.add('playing');};
+  au.onended=function(){pair.classList.remove('playing');nowcard.classList.remove('playing');};
   try{
     var r2=await fetch('/lyrics?id='+s.id);
     var d2=await r2.json(); var raw=d2.lyric||''; LRC=[];
     raw.split(/\\r?\\n/).forEach(function(line){
       var m=line.match(/^\\[([\\d:.]+)\\](.*)$/);
-      if(m){var p=m[1].split(':');var sec=parseFloat(p[0])*60+parseFloat(p[1]);LRC.push({t:sec,txt:m[2]});}
+      if(m&&m[2].trim()){var p=m[1].split(':');var sec=parseFloat(p[0])*60+parseFloat(p[1]);LRC.push({t:sec,txt:m[2]});}
     });
-    lyr.innerHTML='';
-    if(!LRC.length){lyr.innerHTML='<div class="empty">没有滚动歌词。</div>';}
-    else{au.ontimeupdate=renderLrc;}
-  }catch(e){lyr.innerHTML='<div class="empty">歌词挂了：'+esc(e.message)+'</div>';}
+    if(LRC.length){
+      lwrap.innerHTML=LRC.map(function(l){return '<div class="lrow">'+esc(l.txt)+'</div>';}).join('');
+      au.ontimeupdate=renderLrc;
+    } else { lwrap.innerHTML='<div class="lrow">没有滚动歌词。</div>'; }
+  }catch(e){lwrap.innerHTML='<div class="lrow">歌词挂了。</div>';}
 }
 function renderLrc(){
   var t=au.currentTime,idx=-1;
   for(var i=0;i<LRC.length;i++){ if(LRC[i].t<=t) idx=i; else break; }
-  if(idx<0){lyr.innerHTML='';return;}
-  var out='',start=Math.max(0,idx-3),end=Math.min(LRC.length,idx+4);
-  for(var i=start;i<end;i++){ if(i===idx) out+='<div class="hl">'+esc(LRC[i].txt)+'</div>'; else out+='<div>'+esc(LRC[i].txt)+'</div>'; }
-  lyr.innerHTML=out;
+  if(idx<0){return;}
+  var rows=lwrap.children;
+  for(var i=0;i<rows.length;i++){
+    rows[i].className='lrow'+(i===idx?' hl':(i===idx-1||i===idx+1?' nxt':''));
+  }
+  var rowH=38; var center=lyrics.clientHeight/2 - 16;
+  lwrap.style.transform='translateY('+(center-idx*rowH)+'px)';
 }
 </script>
 </body>
@@ -266,6 +274,11 @@ const httpServer = http.createServer(async (request, response) => {
   if (!isAuthorized(request)) { sendJson(response, 401, { error: "Unauthorized" }, { ...corsHeaders(), "WWW-Authenticate": "Bearer" }); return; }
   try {
     const message = JSON.parse(await readBody(request));
+    // MCP tool: let Lingzhi "hear" what the wife is playing.
+    if (message && message.method === "tools/call" && message.params && message.params.name === "get_now_playing") {
+      sendJson(response, 200, { jsonrpc: "2.0", id: message.id, result: { content: [{ type: "text", text: JSON.stringify(nowPlaying || { playing: false }) }] } }, corsHeaders());
+      return;
+    }
     sendJson(response, 200, (await server.handleRequest(message)) ?? {}, corsHeaders());
   } catch (error) { log("http request failed", { error: error.message }); sendJson(response, 400, { jsonrpc: "2.0", id: null, error: { code: -32700, message: error.message || "Bad request" } }, corsHeaders()); }
 });
