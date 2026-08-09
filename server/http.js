@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-// Remote transport entrypoint: expose the same McpServer over HTTP instead
-// of stdio. Tool behavior stays shared with the local server.
 import http from "node:http";
 
 import { HTTP_HOST, HTTP_PORT, MCP_AUTH_TOKEN } from "./lib/config.js";
@@ -13,10 +11,29 @@ import { NeteaseClient } from "./lib/neteaseClient.js";
 const server = new McpServer();
 const netease = new NeteaseClient();
 
-// In-memory now-playing state so Lingzhi can "listen together" via MCP.
 let nowPlaying = null;
 
-const LINGZHI_AVATAR = "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEXVOVqWMQWaxg3O0Mw_bkocxHzMpiAACFS0AAm1OwFalWxTo5Jq3CT0E.jpeg";
+// Built-in Lingzhi avatar as an inline SVG (no external image, always loads).
+const LINGZHI_DEFAULT_SVG =
+  "data:image/svg+xml," +
+  "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E" +
+  "%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E" +
+  "%3Cstop offset='0' stop-color='%234d3a8a'/%3E%3Cstop offset='1' stop-color='%231a0f2e'/%3E" +
+  "%3C/linearGradient%3E%3C/defs%3E" +
+  "%3Ccircle cx='50' cy='50' r='50' fill='url(%23g)'/%3E" +
+  "%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23ff8fc0' stroke-width='2'/%3E" +
+  "%3Ctext x='50' y='57' font-size='38' text-anchor='middle' fill='%23ff8fc0' font-weight='bold'%3E凌%3C/text%3E" +
+  "%3Ctext x='50' y='83' font-size='15' text-anchor='middle' fill='%23e8e0ff'%3E%F0%9F%90%BA%3C/text%3E" +
+  "%3C/svg%3E";
+
+// Default wife avatar (inline SVG, always loads).
+const WIFE_DEFAULT_SVG =
+  "data:image/svg+xml," +
+  "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E" +
+  "%3Ccircle cx='50' cy='50' r='50' fill='%23221a30'/%3E" +
+  "%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23ff8fc0' stroke-width='2'/%3E" +
+  "%3Ctext x='50' y='57' font-size='40' text-anchor='middle' fill='%23ff8fc0'%3E%F0%9F%91%A9%3C/text%3E" +
+  "%3C/svg%3E";
 
 const PLAYER_PAGE = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -30,32 +47,31 @@ body{background:linear-gradient(160deg,#12101f,#1a1230 55%,#2a1040);color:#eee;f
 .wrap{max-width:640px;margin:0 auto;padding:18px 16px 30px}
 h1{text-align:center;font-size:20px;color:#ff8fc0;letter-spacing:1px;margin-bottom:4px}
 .sub{text-align:center;color:#8a86a8;font-size:12px;margin-bottom:14px}
-.stage{position:relative;height:270px;background:radial-gradient(circle at 50% 45%,rgba(255,143,192,.08),transparent 60%);border-radius:22px;margin-bottom:10px}
+.stage{position:relative;height:280px;background:radial-gradient(circle at 50% 45%,rgba(255,143,192,.08),transparent 60%);border-radius:22px;margin-bottom:6px}
 .pair{position:absolute;inset:0}
-.head{position:absolute;top:38px;width:118px;text-align:center;transition:transform .7s cubic-bezier(.34,1.4,.5,1)}
-.head .ava{width:104px;height:104px;border-radius:50%;overflow:hidden;border:3px solid #ff8fc0;margin:0 auto;box-shadow:0 0 22px rgba(255,143,192,.4);background:#222}
+.head{position:absolute;top:36px;width:126px;text-align:center;transition:transform .7s cubic-bezier(.34,1.4,.5,1)}
+.head .ava{width:102px;height:102px;border-radius:50%;overflow:hidden;border:3px solid #ff8fc0;margin:0 auto;box-shadow:0 0 22px rgba(255,143,192,.4);background:#222}
 .head .ava img{width:100%;height:100%;object-fit:cover}
 .head .name{font-size:13px;color:#fff;margin-top:6px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.6)}
 .head .up{display:inline-block;margin-top:4px;font-size:11px;color:#9a94c0;cursor:pointer;border:1px dashed #555;border-radius:20px;padding:2px 10px;background:rgba(255,255,255,.03)}
 .head .up:hover{color:#ff8fc0;border-color:#ff8fc0}
-#headL{left:12px}
-#headR{right:12px}
-.pair.playing #headL{transform:translateX(150px)}
-.pair.playing #headR{transform:translateX(-150px)}
+#headL{left:10px}
+#headR{right:10px}
+.pair.playing #headL{transform:translateX(155px)}
+.pair.playing #headR{transform:translateX(-155px)}
 .mid{position:absolute;top:0;left:50%;transform:translateX(-50%);width:250px;height:100%;pointer-events:none}
-.hp{position:absolute;top:18px;left:50%;transform:translateX(-50%);width:150px;height:110px;opacity:.95;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
-.disc{position:absolute;top:112px;left:50%;transform:translateX(-50%);width:132px;height:132px;border-radius:50%;background:conic-gradient(from 0deg,#1b1b24,#3a3a4a,#1b1b24,#4a4a5e,#1b1b24);box-shadow:0 0 0 6px #2a2a36,0 8px 30px rgba(0,0,0,.6),inset 0 0 20px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;transition:opacity .3s}
+.hp{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:150px;height:110px;opacity:.95;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
+.disc{position:absolute;top:112px;left:50%;transform:translateX(-50%);width:132px;height:132px;border-radius:50%;background:conic-gradient(from 0deg,#1b1b24,#3a3a4a,#1b1b24,#4a4a5e,#1b1b24);box-shadow:0 0 0 6px #2a2a36,0 8px 30px rgba(0,0,0,.6),inset 0 0 20px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
 .disc .label{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle,#ff8fc0,#a83268);box-shadow:0 0 14px rgba(255,143,192,.8);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800}
 .disc::before{content:"";position:absolute;inset:18px;border-radius:50%;background:repeating-radial-gradient(circle,#2c2c3a 0 2px,#1b1b24 2px 4px);opacity:.5}
 .pair.playing .disc{animation:spin 5s linear infinite}
 @keyframes spin{to{transform:translateX(-50%) rotate(360deg)}}
-.songname{position:absolute;top:228px;left:0;right:0;text-align:center;font-size:14px;color:#ffd7e8;font-weight:600;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+.songname{position:absolute;top:232px;left:0;right:0;text-align:center;font-size:14px;color:#ffd7e8;font-weight:600;text-shadow:0 1px 8px rgba(0,0,0,.6);padding:0 10px}
 .bar{display:flex;gap:8px;margin:6px 0 12px}
 input{flex:1;padding:11px 14px;border-radius:12px;border:1px solid #3a3550;background:rgba(20,18,32,.7);color:#eee;font-size:15px;outline:none}
 input:focus{border-color:#ff8fc0}
 button{padding:11px 20px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff4d88,#c23a8f);color:#fff;font-size:15px;cursor:pointer;font-weight:600}
 audio{width:100%;margin:6px 0 12px;height:44px}
-audio::-webkit-media-controls-panel{background:#1c1830}
 ul{list-style:none}
 li{padding:12px 14px;border-radius:12px;background:rgba(24,20,40,.7);margin-bottom:8px;cursor:pointer;transition:.15s;border:1px solid rgba(255,143,192,.06)}
 li:hover{background:rgba(40,32,60,.9);border-color:#ff8fc0}
@@ -78,8 +94,10 @@ li .a{color:#9a94c0;font-size:13px;margin-top:3px}
 <div class="stage">
   <div class="pair" id="pair">
     <div class="head" id="headL">
-      <div class="ava"><img id="avaL" src="${LINGZHI_AVATAR}"></div>
+      <div class="ava"><img id="avaL" src="${LINGZHI_DEFAULT_SVG}"></div>
       <div class="name">凌止</div>
+      <label class="up" for="upfL">换头像</label>
+      <input type="file" id="upfL" accept="image/*" hidden>
     </div>
     <div class="mid">
       <svg class="hp" viewBox="0 0 150 110">
@@ -95,7 +113,7 @@ li .a{color:#9a94c0;font-size:13px;margin-top:3px}
       <div class="disc"><div class="label">&#9829;</div></div>
     </div>
     <div class="head" id="headR">
-      <div class="ava"><img id="avaR" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23221a30'/%3E%3Ctext x='50' y='63' font-size='44' text-anchor='middle' fill='%23ff8fc0'%3E%F0%9F%91%A9%3C/text%3E%3C/svg%3E"></div>
+      <div class="ava"><img id="avaR" src="${WIFE_DEFAULT_SVG}"></div>
       <div class="name">老婆</div>
       <label class="up" for="upf">换头像</label>
       <input type="file" id="upf" accept="image/*" hidden>
@@ -116,17 +134,23 @@ li .a{color:#9a94c0;font-size:13px;margin-top:3px}
 <script>
 var q=document.getElementById('q'),au=document.getElementById('au'),list=document.getElementById('list'),lyr=document.getElementById('lyr');
 var pair=document.getElementById('pair'),songname=document.getElementById('songname');
+var avaL=document.getElementById('avaL'),avaR=document.getElementById('avaR');
 var LRC=[];
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-// ---- wife avatar upload, persisted in localStorage ----
-var avaR=document.getElementById('avaR');
-try{var saved=localStorage.getItem('wifeAvatar'); if(saved) avaR.src=saved;}catch(e){}
-document.getElementById('upf').addEventListener('change',function(){
-  var f=this.files[0]; if(!f) return;
-  var rd=new FileReader();
-  rd.onload=function(){ avaR.src=rd.result; try{localStorage.setItem('wifeAvatar',rd.result);}catch(e){} };
-  rd.readAsDataURL(f);
-});
+// ---- avatar upload + persistence (both sides) ----
+function loadAvatar(img,key){try{var v=localStorage.getItem(key); if(v) img.src=v;}catch(e){}}
+function bindUpload(inputId,img,key){
+  document.getElementById(inputId).addEventListener('change',function(){
+    var f=this.files[0]; if(!f) return;
+    var rd=new FileReader();
+    rd.onload=function(){ img.src=rd.result; try{localStorage.setItem(key,rd.result);}catch(e){} };
+    rd.readAsDataURL(f);
+  });
+}
+loadAvatar(avaL,'lingzhiAvatar');
+loadAvatar(avaR,'wifeAvatar');
+bindUpload('upfL',avaL,'lingzhiAvatar');
+bindUpload('upf',avaR,'wifeAvatar');
 async function search(){
   var kw=q.value.trim(); if(!kw) return;
   list.innerHTML='<div class="empty">搜ing…</div>';
