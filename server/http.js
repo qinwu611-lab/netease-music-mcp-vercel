@@ -61,6 +61,23 @@ const httpServer = http.createServer(async (request, response) => {
     return;
   }
 
+  // Anonymous playable direct-link endpoint. NetEase's public outer link
+  // needs no login; it may be rejected for some VIP/locked tracks.
+  if (request.method === "GET" && url.pathname === "/url") {
+    const id = Number(url.searchParams.get("id"));
+    if (!id || !Number.isInteger(id) || id <= 0) {
+      sendJson(response, 400, { error: "valid id query param required" }, corsHeaders());
+      return;
+    }
+    const direct = `https://music.163.com/song/media/outer/url?id=${id}.mp3`;
+    sendJson(response, 200, {
+      song_id: id,
+      url: direct,
+      note: "anonymous outer link, may fail for VIP/locked tracks",
+    }, corsHeaders());
+    return;
+  }
+
   if (request.method !== "POST" || url.pathname !== "/mcp") {
     sendJson(response, 404, { error: "Not found" }, corsHeaders());
     return;
