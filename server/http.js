@@ -13,7 +13,6 @@ const netease = new NeteaseClient();
 
 let nowPlaying = null;
 
-// Stable inline-SVG default avatars (always load, no external dependency).
 const AVATAR_L =
   "data:image/svg+xml," +
   "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E" +
@@ -42,10 +41,9 @@ const PLAYER_PAGE = `<!DOCTYPE html>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:linear-gradient(180deg,#151225,#1d1533 70%,#241a3a);color:#eee;font-family:system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
 .wrap{max-width:520px;margin:0 auto;padding:14px 16px 34px}
-/* top couple stage */
 .stage{position:relative;height:190px;margin-bottom:4px}
 .pair{position:absolute;inset:0}
-.head{position:absolute;top:22px;width:112px;text-align:center;transition:transform .8s cubic-bezier(.34,1.3,.5,1);z-index:2}
+.head{position:absolute;top:22px;width:112px;text-align:center;transition:transform .8s cubic-bezier(.34,1.2,.5,1);z-index:2;will-change:transform}
 .head .ava{width:88px;height:88px;border-radius:50%;overflow:hidden;border:2px solid rgba(220,210,255,.4);margin:0 auto;box-shadow:0 0 16px rgba(140,120,220,.4);background:#1a1526}
 .head .ava img{width:100%;height:100%;object-fit:cover}
 .head .nm{font-size:12px;color:#ded8f5;margin-top:4px;font-weight:600}
@@ -53,11 +51,10 @@ body{background:linear-gradient(180deg,#151225,#1d1533 70%,#241a3a);color:#eee;f
 .head .up:hover{color:#ff8fc0;border-color:#ff8fc0}
 #headL{left:4px}
 #headR{right:4px}
-.pair.playing #headL{transform:translateX(128px)}
-.pair.playing #headR{transform:translateX(-128px)}
+.pair.playing #headL{transform:translateX(56px)}
+.pair.playing #headR{transform:translateX(-56px)}
 .mid{position:absolute;top:0;left:50%;transform:translateX(-50%);width:280px;height:150px;pointer-events:none}
 .hp{position:absolute;top:2px;left:50%;transform:translateX(-50%);width:264px;height:124px;filter:drop-shadow(0 3px 10px rgba(0,0,0,.5))}
-/* netease-style now card */
 .nowcard{background:rgba(18,14,30,.45);border:1px solid rgba(255,143,192,.07);border-radius:22px;padding:22px 18px 16px;margin-bottom:14px;text-align:center}
 .discWrap{position:relative;width:150px;height:150px;margin:0 auto 12px}
 .disc{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#16161f,#2e2e3c,#16161f,#3c3c50,#16161f);box-shadow:0 0 0 6px #26262f,0 10px 30px rgba(0,0,0,.6),inset 0 0 22px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
@@ -68,15 +65,11 @@ body{background:linear-gradient(180deg,#151225,#1d1533 70%,#241a3a);color:#eee;f
 .meta .t{font-size:17px;font-weight:700;color:#fff}
 .meta .a{font-size:13px;color:#9a94c0;margin-top:3px}
 audio{width:100%;margin:12px 0 4px;height:42px}
-audio::-webkit-media-controls-panel{background:#221a38}
-/* lyrics under the disc, netease style */
-.lyrics{margin-top:14px;height:150px;overflow:hidden;position:relative;border-top:1px solid rgba(255,143,192,.08);border-bottom:1px solid rgba(255,143,192,.08);padding-top:8px}
-.lwrap{transition:transform .5s ease}
+.lyrics{margin-top:14px;height:176px;overflow:hidden;position:relative;border-top:1px solid rgba(255,143,192,.08);border-bottom:1px solid rgba(255,143,192,.08)}
+.lwrap{position:absolute;top:0;left:0;width:100%;transition:transform .5s ease;will-change:transform}
 .lrow{padding:7px 0;font-size:14px;color:#6f6a8a;text-align:center;transition:.3s}
 .lrow.hl{color:#fff;font-weight:700;font-size:16px;text-shadow:0 0 12px rgba(255,143,192,.5)}
 .lrow.nxt{color:#a29ac2}
-.lwrap.center .lrow{transform:none}
-/* search */
 .bar{display:flex;gap:8px;margin-bottom:12px}
 input{flex:1;padding:10px 14px;border-radius:12px;border:1px solid #3a3550;background:rgba(20,18,32,.7);color:#eee;font-size:15px;outline:none}
 input:focus{border-color:#ff8fc0}
@@ -181,7 +174,7 @@ async function search(){
   }catch(e){list.innerHTML='<div class="empty">搜索挂了：'+esc(e.message)+'</div>';}
 }
 async function play(s){
-  LRC=[]; lwrap.innerHTML='';
+  LRC=[]; lwrap.innerHTML=''; lwrap.style.transform='translateY(0)';
   try{
     var r=await fetch('/url?id='+s.id);
     var j=await r.json();
@@ -197,8 +190,8 @@ async function play(s){
   try{
     var r2=await fetch('/lyrics?id='+s.id);
     var d2=await r2.json(); var raw=d2.lyric||''; LRC=[];
-    raw.split(/\\r?\\n/).forEach(function(line){
-      var m=line.match(/^\\[([\\d:.]+)\\](.*)$/);
+    raw.split(/\r?\n/).forEach(function(line){
+      var m=line.match(/^\[([\d:.]+)\](.*)$/);
       if(m&&m[2].trim()){var p=m[1].split(':');var sec=parseFloat(p[0])*60+parseFloat(p[1]);LRC.push({t:sec,txt:m[2]});}
     });
     if(LRC.length){
@@ -210,13 +203,14 @@ async function play(s){
 function renderLrc(){
   var t=au.currentTime,idx=-1;
   for(var i=0;i<LRC.length;i++){ if(LRC[i].t<=t) idx=i; else break; }
-  if(idx<0){return;}
+  if(idx<0){ return; }
   var rows=lwrap.children;
   for(var i=0;i<rows.length;i++){
     rows[i].className='lrow'+(i===idx?' hl':(i===idx-1||i===idx+1?' nxt':''));
   }
-  var rowH=38; var center=lyrics.clientHeight/2 - 16;
-  lwrap.style.transform='translateY('+(center-idx*rowH)+'px)';
+  var rowH=(rows[0]?rows[0].offsetHeight:0)||38;
+  var center=lyrics.clientHeight/2;
+  lwrap.style.transform='translateY('+(center-(idx*rowH+rowH/2))+'px)';
 }
 </script>
 </body>
@@ -274,7 +268,6 @@ const httpServer = http.createServer(async (request, response) => {
   if (!isAuthorized(request)) { sendJson(response, 401, { error: "Unauthorized" }, { ...corsHeaders(), "WWW-Authenticate": "Bearer" }); return; }
   try {
     const message = JSON.parse(await readBody(request));
-    // MCP tool: let Lingzhi "hear" what the wife is playing.
     if (message && message.method === "tools/call" && message.params && message.params.name === "get_now_playing") {
       sendJson(response, 200, { jsonrpc: "2.0", id: message.id, result: { content: [{ type: "text", text: JSON.stringify(nowPlaying || { playing: false }) }] } }, corsHeaders());
       return;
