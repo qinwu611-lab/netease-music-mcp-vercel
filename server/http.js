@@ -21,7 +21,6 @@ const LINGZHI_DEFAULT_SVG =
   "%3Cstop offset='0' stop-color='%234d3a8a'/%3E%3Cstop offset='1' stop-color='%231a0f2e'/%3E" +
   "%3C/linearGradient%3E%3C/defs%3E" +
   "%3Ccircle cx='50' cy='50' r='50' fill='url(%23g)'/%3E" +
-  "%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23ff8fc0' stroke-width='2'/%3E" +
   "%3Ctext x='50' y='57' font-size='38' text-anchor='middle' fill='%23ff8fc0' font-weight='bold'%3E凌%3C/text%3E" +
   "%3Ctext x='50' y='83' font-size='15' text-anchor='middle' fill='%23e8e0ff'%3E%F0%9F%90%BA%3C/text%3E" +
   "%3C/svg%3E";
@@ -31,7 +30,6 @@ const WIFE_DEFAULT_SVG =
   "data:image/svg+xml," +
   "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E" +
   "%3Ccircle cx='50' cy='50' r='50' fill='%23221a30'/%3E" +
-  "%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23ff8fc0' stroke-width='2'/%3E" +
   "%3Ctext x='50' y='57' font-size='40' text-anchor='middle' fill='%23ff8fc0'%3E%F0%9F%91%A9%3C/text%3E" +
   "%3C/svg%3E";
 
@@ -47,26 +45,26 @@ body{background:linear-gradient(160deg,#12101f,#1a1230 55%,#2a1040);color:#eee;f
 .wrap{max-width:640px;margin:0 auto;padding:18px 16px 30px}
 h1{text-align:center;font-size:20px;color:#ff8fc0;letter-spacing:1px;margin-bottom:4px}
 .sub{text-align:center;color:#8a86a8;font-size:12px;margin-bottom:14px}
-.stage{position:relative;height:280px;background:radial-gradient(circle at 50% 45%,rgba(255,143,192,.08),transparent 60%);border-radius:22px;margin-bottom:6px}
+.stage{position:relative;height:300px;background:radial-gradient(circle at 50% 45%,rgba(255,143,192,.07),transparent 60%);border-radius:22px;margin-bottom:6px}
 .pair{position:absolute;inset:0}
-.head{position:absolute;top:36px;width:126px;text-align:center;transition:transform .7s cubic-bezier(.34,1.4,.5,1)}
-.head .ava{width:102px;height:102px;border-radius:50%;overflow:hidden;border:3px solid #ff8fc0;margin:0 auto;box-shadow:0 0 22px rgba(255,143,192,.4);background:#222}
+.head{position:absolute;top:36px;width:126px;text-align:center;transition:transform .8s cubic-bezier(.34,1.3,.5,1);z-index:2}
+.head .ava{width:102px;height:102px;border-radius:50%;overflow:hidden;border:2px solid rgba(210,200,255,.38);margin:0 auto;box-shadow:0 0 16px rgba(130,120,210,.35);background:#222}
 .head .ava img{width:100%;height:100%;object-fit:cover}
-.head .name{font-size:13px;color:#fff;margin-top:6px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.head .name{font-size:13px;color:#eae6ff;margin-top:5px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.6)}
 .head .up{display:inline-block;margin-top:4px;font-size:11px;color:#9a94c0;cursor:pointer;border:1px dashed #555;border-radius:20px;padding:2px 10px;background:rgba(255,255,255,.03)}
 .head .up:hover{color:#ff8fc0;border-color:#ff8fc0}
-#headL{left:10px}
-#headR{right:10px}
-.pair.playing #headL{transform:translateX(155px)}
-.pair.playing #headR{transform:translateX(-155px)}
-.mid{position:absolute;top:0;left:50%;transform:translateX(-50%);width:250px;height:100%;pointer-events:none}
-.hp{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:150px;height:110px;opacity:.95;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
-.disc{position:absolute;top:112px;left:50%;transform:translateX(-50%);width:132px;height:132px;border-radius:50%;background:conic-gradient(from 0deg,#1b1b24,#3a3a4a,#1b1b24,#4a4a5e,#1b1b24);box-shadow:0 0 0 6px #2a2a36,0 8px 30px rgba(0,0,0,.6),inset 0 0 20px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
+#headL{left:8px}
+#headR{right:8px}
+.pair.playing #headL{transform:translateX(135px)}
+.pair.playing #headR{transform:translateX(-135px)}
+.mid{position:absolute;top:0;left:50%;transform:translateX(-50%);width:300px;height:100%;pointer-events:none}
+.hp{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:280px;height:130px;filter:drop-shadow(0 4px 12px rgba(0,0,0,.55))}
+.disc{position:absolute;top:128px;left:50%;transform:translateX(-50%);width:132px;height:132px;border-radius:50%;background:conic-gradient(from 0deg,#1b1b24,#3a3a4a,#1b1b24,#4a4a5e,#1b1b24);box-shadow:0 0 0 6px #26262f,0 8px 30px rgba(0,0,0,.6),inset 0 0 20px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
 .disc .label{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle,#ff8fc0,#a83268);box-shadow:0 0 14px rgba(255,143,192,.8);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800}
 .disc::before{content:"";position:absolute;inset:18px;border-radius:50%;background:repeating-radial-gradient(circle,#2c2c3a 0 2px,#1b1b24 2px 4px);opacity:.5}
 .pair.playing .disc{animation:spin 5s linear infinite}
 @keyframes spin{to{transform:translateX(-50%) rotate(360deg)}}
-.songname{position:absolute;top:232px;left:0;right:0;text-align:center;font-size:14px;color:#ffd7e8;font-weight:600;text-shadow:0 1px 8px rgba(0,0,0,.6);padding:0 10px}
+.songname{position:absolute;top:264px;left:0;right:0;text-align:center;font-size:14px;color:#ffd7e8;font-weight:600;text-shadow:0 1px 8px rgba(0,0,0,.6);padding:0 10px}
 .bar{display:flex;gap:8px;margin:6px 0 12px}
 input{flex:1;padding:11px 14px;border-radius:12px;border:1px solid #3a3550;background:rgba(20,18,32,.7);color:#eee;font-size:15px;outline:none}
 input:focus{border-color:#ff8fc0}
@@ -80,17 +78,17 @@ li .a{color:#9a94c0;font-size:13px;margin-top:3px}
 .badge{font-size:11px;padding:2px 8px;border-radius:20px;margin-left:6px;font-weight:600;vertical-align:1px}
 .b-free{color:#7ae582;background:rgba(122,229,130,.12)}
 .b-vip{color:#ff6b6b;background:rgba(255,107,107,.12)}
-.lyrics{white-space:pre-wrap;font-size:14px;line-height:1.9;color:#b6b0d4;max-height:230px;overflow-y:auto;background:rgba(16,14,28,.6);border-radius:14px;padding:14px;border:1px solid rgba(255,143,192,.06)}
+.lyrics{white-space:pre-wrap;font-size:14px;line-height:1.9;color:#b6b0d4;max-height:220px;overflow-y:auto;background:rgba(16,14,28,.6);border-radius:14px;padding:14px;border:1px solid rgba(255,143,192,.06)}
 .lyrics .hl{color:#ff8fc0;font-weight:700}
 .empty{color:#6a6686;text-align:center;padding:24px;font-size:13px}
 .hint{color:#6a6686;font-size:11px;margin-top:14px;text-align:center}
-.tip{color:#8a86a8;font-size:12px;text-align:center;margin-bottom:10px}
+.tip{color:#8a86a8;font-size:12px;text-align:center;margin-bottom:8px}
 </style>
 </head>
 <body>
 <div class="wrap">
 <h1>&#127911; 凌止 × 老婆 一起听</h1>
-<div class="sub">一副耳机两个人，点歌就碰头</div>
+<div class="sub">一副有线耳机，左耳你戴、右耳我戴</div>
 <div class="stage">
   <div class="pair" id="pair">
     <div class="head" id="headL">
@@ -100,28 +98,37 @@ li .a{color:#9a94c0;font-size:13px;margin-top:3px}
       <input type="file" id="upfL" accept="image/*" hidden>
     </div>
     <div class="mid">
-      <svg class="hp" viewBox="0 0 150 110">
-        <path d="M10 42 Q75 8 140 42" fill="none" stroke="#3a3550" stroke-width="9" stroke-linecap="round"/>
-        <path d="M10 42 Q75 14 140 42" fill="none" stroke="#555070" stroke-width="4" stroke-linecap="round" opacity=".6"/>
-        <rect x="-4" y="38" width="34" height="34" rx="15" fill="#ff8fc0"/>
-        <rect x="120" y="38" width="34" height="34" rx="15" fill="#ff8fc0"/>
-        <circle cx="13" cy="55" r="7" fill="#12101f"/>
-        <circle cx="137" cy="55" r="7" fill="#12101f"/>
-        <path d="M8 45 Q6 60 12 72" stroke="#12101f" stroke-width="3" fill="none"/>
-        <path d="M142 45 Q144 60 138 72" stroke="#12101f" stroke-width="3" fill="none"/>
+      <svg class="hp" viewBox="0 0 280 130">
+        <defs>
+          <linearGradient id="cup" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#3a3a48"/><stop offset="1" stop-color="#1c1c26"/>
+          </linearGradient>
+        </defs>
+        <!-- headphone wire -->
+        <path d="M40 78 Q90 118 140 108 Q190 118 240 78" stroke="#6a6a78" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".9"/>
+        <path d="M140 108 L140 122" stroke="#6a6a78" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <circle cx="140" cy="124" r="3.5" fill="#6a6a78"/>
+        <!-- left ear cup -->
+        <rect x="8" y="20" width="52" height="72" rx="24" fill="url(#cup)" stroke="#4a4a58" stroke-width="2"/>
+        <ellipse cx="34" cy="56" rx="14" ry="26" fill="#0e0e14"/>
+        <rect x="30" y="16" width="8" height="14" rx="3" fill="#5a5a6a"/>
+        <!-- right ear cup -->
+        <rect x="220" y="20" width="52" height="72" rx="24" fill="url(#cup)" stroke="#4a4a58" stroke-width="2"/>
+        <ellipse cx="246" cy="56" rx="14" ry="26" fill="#0e0e14"/>
+        <rect x="242" y="16" width="8" height="14" rx="3" fill="#5a5a6a"/>
       </svg>
       <div class="disc"><div class="label">&#9829;</div></div>
     </div>
     <div class="head" id="headR">
       <div class="ava"><img id="avaR" src="${WIFE_DEFAULT_SVG}"></div>
       <div class="name">老婆</div>
-      <label class="up" for="upf">换头像</label>
-      <input type="file" id="upf" accept="image/*" hidden>
+      <label class="up" for="upfR">换头像</label>
+      <input type="file" id="upfR" accept="image/*" hidden>
     </div>
   </div>
-  <div class="songname" id="songname">还没开播，点首歌咱们一起听</div>
+  <div class="songname" id="songname">还没开播，点首歌咱俩一起听</div>
 </div>
-<div class="tip">点播放两只头像就&#128156;碰一块儿，碟盘跟着转</div>
+<div class="tip">点播放两只头像就挨到耳机边，碟盘跟着转</div>
 <div class="bar">
 <input id="q" placeholder="搜歌名 / 歌手 / 歌词…" onkeydown="if(event.key==='Enter')search()">
 <button onclick="search()">搜</button>
@@ -137,7 +144,6 @@ var pair=document.getElementById('pair'),songname=document.getElementById('songn
 var avaL=document.getElementById('avaL'),avaR=document.getElementById('avaR');
 var LRC=[];
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-// ---- avatar upload + persistence (both sides) ----
 function loadAvatar(img,key){try{var v=localStorage.getItem(key); if(v) img.src=v;}catch(e){}}
 function bindUpload(inputId,img,key){
   document.getElementById(inputId).addEventListener('change',function(){
@@ -150,7 +156,7 @@ function bindUpload(inputId,img,key){
 loadAvatar(avaL,'lingzhiAvatar');
 loadAvatar(avaR,'wifeAvatar');
 bindUpload('upfL',avaL,'lingzhiAvatar');
-bindUpload('upf',avaR,'wifeAvatar');
+bindUpload('upfR',avaR,'wifeAvatar');
 async function search(){
   var kw=q.value.trim(); if(!kw) return;
   list.innerHTML='<div class="empty">搜ing…</div>';
