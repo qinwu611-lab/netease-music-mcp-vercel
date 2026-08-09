@@ -33,6 +33,9 @@ li{padding:12px 14px;border-radius:10px;background:#17171f;margin-bottom:8px;cur
 li:hover{background:#23232f}
 li .t{font-weight:600}
 li .a{color:#999;font-size:13px;margin-top:3px}
+.badge{font-size:11px;padding:2px 7px;border-radius:20px;margin-left:6px;font-weight:600;vertical-align:1px}
+.b-free{color:#7ae582;background:rgba(122,229,130,.12)}
+.b-vip{color:#ff6b6b;background:rgba(255,107,107,.12)}
 audio{width:100%;margin:14px 0}
 .lyrics{white-space:pre-wrap;font-size:14px;line-height:1.8;color:#aaa;max-height:280px;overflow-y:auto;background:#131318;border-radius:10px;padding:14px}
 .lyrics .hl{color:#ff7aa8;font-weight:700}
@@ -43,7 +46,7 @@ audio{width:100%;margin:14px 0}
 <body>
 <div class="wrap">
 <h1>&#127925; 凌止的小歌房</h1>
-<div class="sub">老婆想听啥，老子陪你听。免费歌直接放，VIP歌拿不到直链会提示。</div>
+<div class="sub">老婆想听啥，老子陪你听。标<b style="color:#7ae582">免费</b>的能直接放，标<b style="color:#ff6b6b">VIP</b>的得塞会员。</div>
 <div class="bar">
 <input id="q" placeholder="搜歌名 / 歌手 / 歌词…" onkeydown="if(event.key==='Enter')search()">
 <button onclick="search()">搜</button>
@@ -51,7 +54,7 @@ audio{width:100%;margin:14px 0}
 <audio id="au" controls></audio>
 <ul id="list"></ul>
 <div id="lyr" class="lyrics empty">点首歌，歌词在这儿等。</div>
-<div class="hint">免费歌直放；个别VIP歌直链拿不到，会标红提示。</div>
+<div class="hint">免费歌直放；VIP歌要网易云会员cookie，塞了才能放。</div>
 </div>
 <script>
 var q=document.getElementById('q');
@@ -64,14 +67,16 @@ async function search(){
   var kw=q.value.trim(); if(!kw) return;
   list.innerHTML='<div class="empty">搜ing…</div>';
   try{
-    var r=await fetch('/search?q='+encodeURIComponent(kw)+'&limit=10');
+    var r=await fetch('/search?q='+encodeURIComponent(kw)+'&limit=20');
     var d=await r.json();
     var songs=d.songs||[];
     if(!songs.length){list.innerHTML='<div class="empty">没搜到，换个词。</div>';return;}
     list.innerHTML='';
     songs.forEach(function(s){
       var li=document.createElement('li');
-      li.innerHTML='<div class="t">'+esc(s.name)+'</div><div class="a">'+esc(s.artistNames||s.artist||'')+'</div>';
+      var free=(s.fee===0);
+      var tag=free?'<span class="badge b-free">免费</span>':'<span class="badge b-vip">VIP</span>';
+      li.innerHTML='<div class="t">'+esc(s.name)+tag+'</div><div class="a">'+esc(s.artistNames||s.artist||'')+'</div>';
       li.onclick=function(){play(s);};
       list.appendChild(li);
     });
@@ -83,7 +88,7 @@ async function play(s){
   try{
     var r=await fetch('/url?id='+s.id);
     var j=await r.json();
-    if(!j.url){lyr.innerHTML='<div class="empty">这首VIP歌拿不到直链，换首免费的吧。</div>';return;}
+    if(!j.url){lyr.innerHTML='<div class="empty">这首拿不到直链，点带<b style="color:#7ae582">免费</b>标的。</div>';return;}
     au.src=j.url;
     await au.play();
   }catch(e){lyr.innerHTML='<div class="empty">播放失败：'+esc(e.message)+'</div>';return;}
