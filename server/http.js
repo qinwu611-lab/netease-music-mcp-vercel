@@ -43,7 +43,7 @@ audio{width:100%;margin:14px 0}
 <body>
 <div class="wrap">
 <h1>&#127925; 凌止的小歌房</h1>
-<div class="sub">老婆想听啥，老子陪你听。匿名源，VIP歌可能放不了，见谅。</div>
+<div class="sub">老婆想听啥，老子陪你听。免费歌直接放，VIP歌拿不到直链会提示。</div>
 <div class="bar">
 <input id="q" placeholder="搜歌名 / 歌手 / 歌词…" onkeydown="if(event.key==='Enter')search()">
 <button onclick="search()">搜</button>
@@ -51,26 +51,26 @@ audio{width:100%;margin:14px 0}
 <audio id="au" controls></audio>
 <ul id="list"></ul>
 <div id="lyr" class="lyrics empty">点首歌，歌词在这儿等。</div>
-<div class="hint">免费歌直放；个别VIP歌直链拿不到，老子后面给你换源。</div>
+<div class="hint">免费歌直放；个别VIP歌直链拿不到，会标红提示。</div>
 </div>
 <script>
-let q=document.getElementById('q');
-let au=document.getElementById('au');
-let list=document.getElementById('list');
-let lyr=document.getElementById('lyr');
-let LRC=[];
+var q=document.getElementById('q');
+var au=document.getElementById('au');
+var list=document.getElementById('list');
+var lyr=document.getElementById('lyr');
+var LRC=[];
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 async function search(){
-  let kw=q.value.trim(); if(!kw) return;
+  var kw=q.value.trim(); if(!kw) return;
   list.innerHTML='<div class="empty">搜ing…</div>';
   try{
-    let r=await fetch('/search?q='+encodeURIComponent(kw)+'&limit=10');
-    let d=await r.json();
-    let songs=d.songs||[];
+    var r=await fetch('/search?q='+encodeURIComponent(kw)+'&limit=10');
+    var d=await r.json();
+    var songs=d.songs||[];
     if(!songs.length){list.innerHTML='<div class="empty">没搜到，换个词。</div>';return;}
     list.innerHTML='';
     songs.forEach(function(s){
-      let li=document.createElement('li');
+      var li=document.createElement('li');
       li.innerHTML='<div class="t">'+esc(s.name)+'</div><div class="a">'+esc(s.artistNames||s.artist||'')+'</div>';
       li.onclick=function(){play(s);};
       list.appendChild(li);
@@ -78,22 +78,23 @@ async function search(){
   }catch(e){list.innerHTML='<div class="empty">搜索挂了：'+esc(e.message)+'</div>';}
 }
 async function play(s){
-  lyr.innerHTML='<div class="empty">歌词载入中…</div>';
-  au.src='/url?id='+s.id;
-  au.play();
+  lyr.innerHTML='<div class="empty">取直链中…</div>';
   LRC=[];
   try{
-    let r=await fetch('/lyrics?id='+s.id);
-    let d=await r.json();
-    let raw=d.lyric||'';
+    var r=await fetch('/url?id='+s.id);
+    var j=await r.json();
+    if(!j.url){lyr.innerHTML='<div class="empty">这首VIP歌拿不到直链，换首免费的吧。</div>';return;}
+    au.src=j.url;
+    await au.play();
+  }catch(e){lyr.innerHTML='<div class="empty">播放失败：'+esc(e.message)+'</div>';return;}
+  try{
+    var r2=await fetch('/lyrics?id='+s.id);
+    var d2=await r2.json();
+    var raw=d2.lyric||'';
     LRC=[];
     raw.split(/\\r?\\n/).forEach(function(line){
-      let m=line.match(/^\\[([\\d:.]+)\\](.*)$/);
-      if(m){
-        let p=m[1].split(':');
-        let sec=parseFloat(p[0])*60+parseFloat(p[1]);
-        LRC.push({t:sec,txt:m[2]});
-      }
+      var m=line.match(/^\\[([\\d:.]+)\\](.*)$/);
+      if(m){var p=m[1].split(':');var sec=parseFloat(p[0])*60+parseFloat(p[1]);LRC.push({t:sec,txt:m[2]});}
     });
     lyr.innerHTML='';
     if(!LRC.length){lyr.innerHTML='<div class="empty">没有滚动歌词。</div>';}
@@ -101,11 +102,11 @@ async function play(s){
   }catch(e){lyr.innerHTML='<div class="empty">歌词挂了：'+esc(e.message)+'</div>';}
 }
 function renderLrc(){
-  let t=au.currentTime; let idx=-1;
-  for(let i=0;i<LRC.length;i++){ if(LRC[i].t<=t) idx=i; else break; }
+  var t=au.currentTime; var idx=-1;
+  for(var i=0;i<LRC.length;i++){ if(LRC[i].t<=t) idx=i; else break; }
   if(idx<0){lyr.innerHTML='';return;}
-  let out=''; let start=Math.max(0,idx-3); let end=Math.min(LRC.length,idx+4);
-  for(let i=start;i<end;i++){
+  var out=''; var start=Math.max(0,idx-3); var end=Math.min(LRC.length,idx+4);
+  for(var i=start;i<end;i++){
     if(i===idx) out+='<div class="hl">'+esc(LRC[i].txt)+'</div>';
     else out+='<div>'+esc(LRC[i].txt)+'</div>';
   }
